@@ -9,7 +9,8 @@ pipeline {
         stage('Install Tools') {
             steps {
                 sh '''
-                  python3 -m pip install --user pylint
+                  sudo apt update
+                  sudo apt install -y pylint bc
                 '''
             }
         }
