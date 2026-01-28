@@ -1,0 +1,9 @@
+{
+  "job_name": "sample-pipeline",
+  "build_number": "12",
+  "status": "FAILURE",
+  "branch": "main",
+  "build_url": "https://jenkins.example.com/job/sample-pipeline/12/",
+  "environment": "dev",
+  "timestamp": "2026-01-28T10:30:00Z"
+}
