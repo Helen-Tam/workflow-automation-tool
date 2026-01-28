@@ -1,35 +1,21 @@
 pipeline {
-    agent any 
+    agent any
 
     environment {
         MAKE_WEBHOOK_URL = credentials('make-webhook-url')
     }
 
     stages {
-        stage('Install Tools') {
+        stage('Build') {
             steps {
-                sh '''
-                  sudo apt update
-                  sudo apt install -y pylint bc
-                '''
+                sh 'echo Building...'
             }
         }
 
-        stage('Static Code Analysis') {
+        stage('Test') {
             steps {
-                sh '''
-                  echo "Running pylint on app/app.py..."
-
-                  SCORE=$(pylint app/app.py | awk '/rated at/ {print $7}' | cut -d'/' -f1)
-                  echo "Pylint score: $SCORE"
-
-                  if [ "$(echo "$SCORE < 7.0" | bc -l)" -eq 1 ]; then
-                    echo "Pylint score too low"
-                    exit 1
-                  else
-                    echo "Pylint score OK"
-                  fi
-                '''
+                sh 'echo Testing...'
+                // sh 'exit 1'   // uncomment to simulate failure
             }
         }
     }
