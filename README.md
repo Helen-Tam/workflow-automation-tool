@@ -14,7 +14,7 @@ Make Webhook
    └── Email module → send email to developer
 ```
 
-![make-architecture](images/integration.png)
+![make-architecture](images/arch.png)
 
 Why Make?
    - No credentials stored in Jenkins for Slack/Email
