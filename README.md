@@ -1,4 +1,5 @@
 👉  Project: " Integrate Jenkins → Make (Integromat) → Slack + Email "
+
 👉  Goal: Every Jenkins pipeline run automatically notifies developers on SUCCESS or FAILURE.
 
 High-level architecture
@@ -13,6 +14,8 @@ Make Webhook
    └── Email module → send email to developer
 ```
 
+![make-architecture](images/integration.png)
+
 Why Make?
    - No credentials stored in Jenkins for Slack/Email
    - Easy branching logic (success vs failure)
@@ -22,17 +25,9 @@ Why Make?
 Project Structure:
 ```
 .
-├── app/
-│   ├── app.py
-│   ├── Dockerfile
-│   ├── .dockerignore
-│   ├── requirements.txt
-│   ├── static/
-│   └── templates/
-│
 ├── ci/
 │   ├── notify.sh
-│   └── payload-example.json
+│   └── payload.json
 │
 ├── Jenkinsfile
 ├── README.md
@@ -54,7 +49,7 @@ Project Structure:
    - Make is now waiting for a request
 
 - Send test payload:
-- From your terminal:
+   - From your terminal:
 ```
 curl -X POST "<MAKE_WEBHOOK_URL>" \
   -H "Content-Type: application/json" \
