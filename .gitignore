@@ -1,0 +1,14 @@
+# Ignore environment variables file
+.env 
+# Ignore service_account token
+service_account.json
+# Ignore venv/ 
+venv/
+# Other files
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+node_modules/
+# Token file
+token.txt
