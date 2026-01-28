@@ -1,7 +1,7 @@
 👉  Project: " Integrate Jenkins → Make (Integromat) → Slack + Email "
-Goal: Every Jenkins pipeline run automatically notifies developers on SUCCESS or FAILURE.
+👉  Goal: Every Jenkins pipeline run automatically notifies developers on SUCCESS or FAILURE.
 
-1️⃣ High-level architecture
+High-level architecture
 ```
 Jenkins Pipeline
    │
@@ -9,139 +9,148 @@ Jenkins Pipeline
    ▼
 Make Webhook
    │
-   ├── Slack module → send message to channel / user
+   ├── Slack module → send message to channel
    └── Email module → send email to developer
 ```
+
 Why Make?
-No credentials stored in Jenkins for Slack/Email
-Easy branching logic (success vs failure)
-Central notification logic (reusable across pipelines)
-Great answer for “decoupling CI from integrations” 
+   - No credentials stored in Jenkins for Slack/Email
+   - Easy branching logic (success vs failure)
+   - Central notification logic (reusable across pipelines)
+   - Great answer for “decoupling CI from integrations” 
 
-2️⃣ Create the Make Scenario (Webhook)
-Step 1: Webhook trigger
+Project Structure:
+```
+.
+├── app/
+│   ├── app.py
+│   ├── Dockerfile
+│   ├── .dockerignore
+│   ├── requirements.txt
+│   ├── static/
+│   └── templates/
+│
+├── ci/
+│   ├── notify.sh
+│   └── payload-example.json
+│
+├── Jenkinsfile
+├── README.md
+└── .gitignore
+``` 
 
-In Make:
+👉 Create the Make Scenario (Webhook trigger):
 
-Create a new scenario
+- In Make:
+   - Create a new scenario
+   - Add Webhooks → Custom webhook
+   - Click Add, name it: jenkins_pipeline_notifications
+   - Copy the generated Webhook URL (we’ll use it in Jenkins)
 
-Add Webhooks → Custom webhook
+👉 Capture the payload structure (IMPORTANT):
 
-Click Add, name it:
-jenkins_pipeline_notifications
+- Run once (listen for data):
+   - Click Run once in the bottom-left
+   - Make is now waiting for a request
 
-Copy the generated Webhook URL
-(we’ll use it in Jenkins)
+- Send test payload:
+- From your terminal:
+```
+curl -X POST "<MAKE_WEBHOOK_URL>" \
+  -H "Content-Type: application/json" \
+  -d @ci/payload-example.json
+```
 
-3️⃣ Define payload contract (VERY important)
+- Verify:
 
-Jenkins will send structured JSON.
+![webhook](images/webhook.png) 
 
-Example payload:
-{
-  "job_name": "my-app-pipeline",
-  "build_number": "42",
-  "status": "SUCCESS",
-  "branch": "main",
-  "commit": "a1b2c3d",
-  "author": "helen",
-  "build_url": "https://jenkins.example.com/job/my-app/42/",
-  "environment": "prod"
-}
+✅ This locks the data contract
 
-👉 This “contract” is what Make relies on
-👉 This is exactly how real CI/CD integrations are designed
+👉 Define payload contract (VERY important):
+- Jenkins will send structured JSON.
+   - See ci/payload.json
 
-4️⃣ Jenkins Pipeline – core integration
+👉 Jenkins Pipeline – core integration:
 
-🔐 Security best practice
+- Store Make webhook URL as Jenkins credential
+- Type: Secret Text
+- ID: make-webhook-url
 
-Store Make webhook URL as Jenkins credential
+👉 Make Scenario – routing logic:
+- Step 1: Add Router
+- Step 2: Create two routes: SUCCESS and FAILURE
+- Step 3: Set up filters for the routes:
+   - SUCCESS route: status  |  equal to  |  SUCCESS
 
-Type: Secret Text
+   ![success-filter](images/filter_success.png)
 
-ID: make-webhook-url
+   - FAILURE route: status  |  equal to  |  FAILURE
 
-5️⃣ Make Scenario – routing logic
-Step 1: Add Router
+   ![failure-filter](images/filter_failure.png)
 
-After the webhook:
+👉 Configure SUCCESS route:
 
-Add Router
+- Add Slack:
+   - Click ➕ on the SUCCESS route
+   - Select Slack → Create a message
+- Slack message (SUCCESS)
 
-Create two routes:
+![success](images/slack_success.png)
 
-SUCCESS
+- Add Email
+   - Click ➕ after Slack
+   - Choose Email → Send an email
+   - Example:
+      - To: developer email (static for now)
+      - Subject: ✅ Jenkins SUCCESS – {{job_name}} #{{build_number}}
+   - Body: similar to Slack, slightly more verbose
 
-FAILURE
+👉 Configure FAILURE route:
 
-Filters:
+- Add Slack:
+   - Click ➕ on the FAILURE route
+   - Select Slack → Create a message
+- Slack message (FAILURE)
 
-SUCCESS route: status = SUCCESS
-FAILURE route: status = FAILURE
+![failure](images/slack_failed.png)
 
-6️⃣ Slack notification module
-Example Slack message (FAILURE)
-🚨 Jenkins Pipeline FAILED
+- Email module (FAILURE)
+   - Subject: ❌ Jenkins FAILURE – {{job_name}} #{{build_number}}
+   - Body:
+   - The Jenkins pipeline has FAILED.
+      - Job: {{job_name}}
+      - Build: #{{build_number}}
+      - Branch: {{branch}}
+      - Environment: {{environment}}
+      - Logs: {{build_url}}
 
-• Job: {{job_name}}
-• Build: #{{build_number}}
-• Branch: {{branch}}
-• Environment: {{environment}}
+👉 Validate without Jenkins:
+- Send both payloads manually:
+```
+# SUCCESS
+jq '.status="SUCCESS"' ci/payload-example.json | \
+curl -X POST "<MAKE_WEBHOOK_URL>" \
+-H "Content-Type: application/json" \
+-d @-
 
-🔗 Build URL:
-{{build_url}}
+# FAILURE
+jq '.status="FAILURE"' ci/payload-example.json | \
+curl -X POST "<MAKE_WEBHOOK_URL>" \
+-H "Content-Type: application/json" \
+-d @-
+```
 
-Example Slack message (SUCCESS)
-✅ Jenkins Pipeline SUCCESS
+👉 Why this design is GOOD DevOps:
 
-• Job: {{job_name}}
-• Build: #{{build_number}}
-• Branch: {{branch}}
-
-🎉 All checks passed!
-
-7️⃣ Email notification module
-
-Subject (FAILURE): ❌ Jenkins Build Failed – {{job_name}} #{{build_number}}
-Body:
-Hello,
-
-The Jenkins pipeline has FAILED.
-
-Job: {{job_name}}
-Build: #{{build_number}}
-Environment: {{environment}}
-
-Build URL:
-{{build_url}}
-
-Please investigate.
-
-— CI/CD System
-
-8️⃣ Why this design is GOOD DevOps (interview gold)
-
-You can confidently say:
-
-Jenkins does not talk directly to Slack or Email
-
-Jenkins only emits events
-
-Make handles:
-
-Notification formatting
-
-Routing
-
-Multiple integrations
-
-Easy to add:
-
-MS Teams
-
-PagerDuty
-
-Jira ticket creation
-
-Zero pipeline changes needed
+- Jenkins does not talk directly to Slack or Email
+- Jenkins only emits events
+- Make handles:
+   - Notification formatting
+   -  Routing
+   - Multiple integrations
+- Easy to add:
+   - MS Teams
+   - PagerDuty
+   - Jira ticket creation
+   - Zero pipeline changes needed
