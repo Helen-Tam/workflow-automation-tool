@@ -4,6 +4,14 @@
 
 High-level architecture
 ```
+Developer
+   │
+   │  (Push Request)
+   ▼
+GitHub 
+   │
+   │  (trigger/webhook)
+   ▼
 Jenkins Pipeline
    │
    │  (HTTP POST with build status + metadata)
@@ -14,7 +22,7 @@ Make Webhook
    └── Email module → send email to developer
 ```
 
-![make-architecture](images/arch.png)
+![make-architecture](images/schema.png)
 
 Why Make?
    - No credentials stored in Jenkins for Slack/Email
@@ -135,6 +143,11 @@ curl -X POST "<MAKE_WEBHOOK_URL>" \
 -H "Content-Type: application/json" \
 -d @-
 ```
+
+👉 Final Make scenario:
+
+![make-architecture](images/arch.png)
+
 
 👉 Why this design is GOOD DevOps:
 
